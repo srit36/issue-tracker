@@ -1,122 +1,178 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react';
+import Sidebar from './Sidebar';
+import StatsBar from './StatsBar';
+import IssueForm from './IssueForm';
+import IssueCard from './IssueCard';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [issues, setIssues] = useState([]);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
+  const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingIssue, setEditingIssue] = useState(null);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/issues')
+      .then(res => res.json())
+      .then(data => setIssues(data));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
+  const openCreateForm = () => {
+    setEditingIssue(null);
+    setFormOpen(true);
+  };
+
+  const openEditForm = (issue) => {
+    setEditingIssue(issue);
+    setFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditingIssue(null);
+  };
+
+  const handleSave = async (data) => {
+    if (editingIssue) {
+      const res = await fetch(`http://localhost:5000/issues/${editingIssue._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const updated = await res.json();
+      setIssues(issues.map((i) => (i._id === updated._id ? updated : i)));
+    } else {
+      const res = await fetch('http://localhost:5000/issues', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const created = await res.json();
+      setIssues([created, ...issues]);
+    }
+    closeForm();
+  };
+
+  const handleDelete = (id) => {
+    setIssues(issues.filter((i) => i._id !== id));
+  };
+
+  const priorityRank = { Critical: 4, High: 3, Medium: 2, Low: 1 };
+
+  const visibleIssues = issues
+    .filter((i) => i.title.toLowerCase().includes(search.toLowerCase()))
+    .filter((i) => (statusFilter === 'All' ? true : i.status === statusFilter))
+    .sort((a, b) => {
+      if (sortBy === 'priority') return priorityRank[b.priority] - priorityRank[a.priority];
+      if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+  const counts = {
+    total: issues.length,
+    open: issues.filter((i) => i.status === 'Open').length,
+    inProgress: issues.filter((i) => i.status === 'In Progress').length,
+    closed: issues.filter((i) => i.status === 'Closed').length,
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div data-theme={darkMode ? 'dark' : 'light'} className="app-shell">
+      <Sidebar
+        statusFilter={statusFilter}
+        onFilterChange={setStatusFilter}
+        onNewIssue={openCreateForm}
+        counts={counts}
+      />
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <main className="main-content">
+        <div className="main-header">
+          <div>
+            <h1>Issues</h1>
+            <p className="subtitle">Track and manage your issues</p>
+          </div>
+          <div className="header-actions">
+            <input
+              type="text"
+              placeholder="Search issues..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="search-input"
+            />
+            <button className="theme-toggle" onClick={() => setDarkMode(!darkMode)}>
+              {darkMode ? '☀' : '●'}
+            </button>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <StatsBar issues={issues} />
+
+        <div className="toolbar">
+          <button className="new-issue-btn" onClick={openCreateForm}>+ New Issue</button>
+          <div className="toolbar-right">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="All">All statuses</option>
+              <option value="Open">Open</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Closed">Closed</option>
+            </select>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="priority">Priority</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Created At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleIssues.length === 0 ? (
+                <tr><td colSpan="6" className="empty-state">No issues found.</td></tr>
+              ) : (
+                visibleIssues.map((issue, idx) => (
+                  <IssueCard
+                    key={issue._id}
+                    issue={issue}
+                    index={idx + 1}
+                    onDelete={handleDelete}
+                    onEdit={openEditForm}
+                  />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </main>
+
+      <IssueForm
+        isOpen={formOpen}
+        editingIssue={editingIssue}
+        onSave={handleSave}
+        onClose={closeForm}
+      />
+    </div>
+  );
 }
 
-export default App
+export default App;
