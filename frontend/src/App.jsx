@@ -15,7 +15,7 @@ function App() {
   const [editingIssue, setEditingIssue] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:5000/issues')
+    fetch(`${import.meta.env.VITE_API_URL}/issues`)
       .then(res => res.json())
       .then(data => setIssues(data));
   }, []);
@@ -45,7 +45,7 @@ function App() {
 
   const handleSave = async (data) => {
     if (editingIssue) {
-      const res = await fetch(`http://localhost:5000/issues/${editingIssue._id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/issues/${editingIssue._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -53,7 +53,7 @@ function App() {
       const updated = await res.json();
       setIssues(issues.map((i) => (i._id === updated._id ? updated : i)));
     } else {
-      const res = await fetch('http://localhost:5000/issues', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/issues`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

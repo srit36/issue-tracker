@@ -1,6 +1,6 @@
 function IssueCard({ issue, index, onDelete, onEdit }) {
   const handleDelete = async () => {
-    await fetch(`http://localhost:5000/issues/${issue._id}`, { method: 'DELETE' });
+    await fetch(`${import.meta.env.VITE_API_URL}/issues/${issue._id}`, { method: 'DELETE' });
     onDelete(issue._id);
   };
 
