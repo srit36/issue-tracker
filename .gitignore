@@ -1,2 +1,12 @@
 node_modules/
 .env
+.env.*
+!.env.example
+dist/
+*.log
+mfa-qr.png
+reporter-mfa-qr.png
+trivy-*.json
+trivy-*.txt
+trivy-results/
+screenshots/

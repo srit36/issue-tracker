@@ -1,6 +1,14 @@
-function IssueCard({ issue, index, onDelete, onEdit }) {
+function IssueCard({ issue, index, onDelete, onEdit, token, canEdit, canDelete }) {
   const handleDelete = async () => {
-    await fetch(`${import.meta.env.VITE_API_URL}/issues/${issue._id}`, { method: 'DELETE' });
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/issues/${issue._id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || 'Delete failed');
+      return;
+    }
     onDelete(issue._id);
   };
 
@@ -31,12 +39,16 @@ function IssueCard({ issue, index, onDelete, onEdit }) {
       <td className="col-date">{formattedDate}</td>
       <td>
         <div className="row-actions">
-          <button className="icon-btn" onClick={() => onEdit(issue)} title="Edit">
-            <EditIcon />
-          </button>
-          <button className="icon-btn icon-btn-danger" onClick={handleDelete} title="Delete">
-            <TrashIcon />
-          </button>
+          {canEdit && (
+            <button className="icon-btn" onClick={() => onEdit(issue)} title="Edit">
+              <EditIcon />
+            </button>
+          )}
+          {canDelete && (
+            <button className="icon-btn icon-btn-danger" onClick={handleDelete} title="Delete">
+              <TrashIcon />
+            </button>
+          )}
         </div>
       </td>
     </tr>
